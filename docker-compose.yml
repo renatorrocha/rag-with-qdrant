@@ -1,4 +1,14 @@
 services:
+  api:
+    build:
+      context: .
+    container_name: "rag-with-qdrant"
+    environment:
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - vector-db
   vector-db:
     image: qdrant/qdrant
     ports:
