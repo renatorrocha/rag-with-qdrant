@@ -1,15 +1,33 @@
+from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from docling.document_converter import DocumentConverter
 import tempfile
 from app.clean_nans import clean_nans
 from langchain_ollama.embeddings import OllamaEmbeddings
 from qdrant_client import QdrantClient
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import (
+    PyMuPDFLoader,
+    TextLoader,
+    Docx2txtLoader,
+)
 
 app = FastAPI()
 
-text_splitter = OllamaEmbeddings(model="nomic-embed-text")
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+embedder = OllamaEmbeddings(model="nomic-embed-text")
 
 qdrant_client = QdrantClient(url="http://vector-db:6333")
+
+supported_types = {
+        "application/pdf": PyMuPDFLoader,
+        "text/plain": TextLoader,
+        "text/markdown": TextLoader,
+        "text/md": TextLoader,
+        "application/octet-stream": TextLoader,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": Docx2txtLoader,
+    }
+
+max_file_size = 10 * 1024 * 1024  # 10MB
 
 @app.get("/")
 def hello_world():
@@ -17,66 +35,49 @@ def hello_world():
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    supported_types = [
-        "application/pdf",
-        "text/plain",
-        "text/md",
-        "text/docx",
-        "application/octet-stream" # for .md files
-    ]
-
-    max_file_size = 10 * 1024 * 1024  # 10MB
 
     if file.content_type not in supported_types:
-        raise HTTPException(status_code=400, detail="File type not supported")
+        raise HTTPException(status_code=400, detail=f"File type not supported: {file.content_type}")
 
     if not file.size:
-        raise HTTPException(status_code=400, detail="Could not determine file size")
+        raise HTTPException(status_code=400, detail="Tamanho do arquivo não identificado")
     elif file.size > max_file_size:
-        raise HTTPException(status_code=400, detail="File size exceeds the maximum allowed")
-    
-    try:
-        file_content = await file.read()
-        converter = DocumentConverter()
+        raise HTTPException(status_code=400, detail="Arquivo excede o tamanho máximo permitido (10MB)")
 
-        # TXT
-        if file.content_type == "text/plain":
-            text = file_content.decode("utf-8")
-            result = converter.convert(text)
-        
-        # PDF or DOCX
-        else:
-            with tempfile.NamedTemporaryFile(delete=True, suffix=file.filename) as tmp:
-                tmp.write(file_content)
-                tmp.flush()
-                result = converter.convert(tmp.name)
+    try:
+        suffix = Path(file.filename or "file").suffix or ".tmp"
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+
+        LoaderClass = supported_types[file.content_type]
+        loader = LoaderClass(tmp_path)
+        docs = loader.load()
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
 
-    text = result.document.export_to_text()
-    clean_text = clean_nans(text)
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)  # remove o arquivo temporário
 
-    # TODO: split text into chunks
-    chunks = text_splitter.embed_documents(clean_text)
-    print(chunks)
+
+    full_text = "\n".join([doc.page_content for doc in docs])
+    clean_text = clean_nans(full_text)
+
+    chunks = text_splitter.split_text(clean_text)
+    
+    # Embedding chunks
+    vectors = embedder.embed_documents(chunks)
+
+    teste = qdrant_client.add(
+        collection_name="test",
+        documents=chunks,
+        embeddings=vectors,
+        ids=list(range(len(chunks)))
+    )
+    print(teste)
 
     # TODO: save chunks to vector database
 
-    return {"text": clean_text}
-
-@app.get("/test-qdrant")
-def test_qdrant_connection():
-    try:
-        # Tenta fazer uma operação simples
-        collections = qdrant_client.get_collections()
-        return {
-            "status": "success", 
-            "message": "Conexão com Qdrant estabelecida",
-            "collections": [col.name for col in collections.collections]
-        }
-    except Exception as e:
-        return {
-            "status": "error", 
-            "message": f"Erro na conexão: {str(e)}"
-        }
+    return {"text": clean_text, "chunks": len(chunks)}

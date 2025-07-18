@@ -1,4 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.9-slim AS builder
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11-slim AS builder
 
 COPY ./requirements.txt /app/
 
