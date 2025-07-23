@@ -6,6 +6,8 @@ services:
     environment:
       PORT: 8000
       OLLAMA_BASE_URL: http://ollama:11434
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      COLLECTION_NAME: ${COLLECTION_NAME}
     ports:
       - "8000:8000"
     depends_on:

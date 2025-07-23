@@ -1,26 +1,10 @@
-import os
 import uuid
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from langchain_ollama.embeddings import OllamaEmbeddings
-from qdrant_client import QdrantClient, models
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from qdrant_client import models
+from call_groq import call_groq
+from config import supported_types, max_file_size, text_splitter, embedder, qdrant_client, COLLECTION_NAME
 
 app = FastAPI()
-
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", "documents")
-
-LLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-embedder = OllamaEmbeddings(model="nomic-embed-text", base_url=LLAMA_BASE_URL)
-
-qdrant_client = QdrantClient(url="http://vector-db:6333")
-
-
-supported_types = ["text/plain", "text/markdown", "application/octet-stream"]
-
-max_file_size = 10 * 1024 * 1024  # 10MB
-
 
 @app.get("/")
 def hello_world():
@@ -70,7 +54,24 @@ async def upload_file(file: UploadFile = File(...)):
         for vector, chunk in zip(vectors, chunks)
     ]
 
-    # Save chunks to vector database
     qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
 
-    return {"text": text, "chunks": len(chunks)}
+    return {"data": "Uploaded successfully", "chunks": len(chunks)}
+
+@app.post("/ask")
+async def ask(question: str):
+    question_embedding = embedder.embed_query(question)
+
+    search_result = qdrant_client.search(
+        collection_name=COLLECTION_NAME,
+        query_vector=question_embedding,
+        limit=5,
+        with_payload=True,
+    )
+
+    context_chunks = [hit.payload["text"] for hit in search_result]
+    context = "\n\n".join(context_chunks)
+
+    answer = call_groq(context, question)
+
+    return {"answer": answer}
