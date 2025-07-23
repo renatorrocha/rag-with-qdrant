@@ -42,7 +42,7 @@ docker-compose up --build
 
 ### File Upload
 
-- `POST /upload`
+- `POST /upload-file`
   - Receive uploaded files (PDF, DOCX, TXT)
   - Extract and split text into chunks
   - Generate embeddings
@@ -57,13 +57,4 @@ docker-compose up --build
   - Return relevant context to answer the question
 
 ---
-
-## ✅ TO-DO
-
-- [ ] Implement `POST /upload` endpoint
-- [ ] Add support for extracting text from PDF, DOCX, and TXT
-- [ ] Implement text splitting into smaller chunks
-- [ ] Integrate embedding generation
-- [ ] Store embeddings in Qdrant
-- [ ] Implement question-answering logic
 
