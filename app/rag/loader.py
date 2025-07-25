@@ -4,7 +4,10 @@ from fastapi import HTTPException, UploadFile
 
 
 async def load_documents(file: UploadFile):
-    if file.content_type == "text/plain":
+    if (
+        file.content_type == "text/plain"
+        or file.content_type == "application/octet-stream"
+    ):
         return await process_plain_text(file)
 
 

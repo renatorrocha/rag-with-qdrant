@@ -1,13 +1,17 @@
 import os
 from qdrant_client import QdrantClient
 
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "documents")
 
-LLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+QDRANT_URL = os.getenv("QDRANT_URL")
 
-qdrant_client = QdrantClient(url="http://vector-db:6333")
+
+qdrant_client = QdrantClient(url=QDRANT_URL)
 
 supported_types = ["text/plain", "text/markdown", "application/octet-stream"]
 

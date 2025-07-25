@@ -24,6 +24,8 @@ async def upload_file(file: UploadFile = File(...)):
 
     text = await load_documents(file)
 
+    print(text)
+
     if not text:
         raise HTTPException(status_code=400, detail="File is empty")
 
