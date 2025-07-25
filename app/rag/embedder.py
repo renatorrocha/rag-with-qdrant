@@ -1,16 +1,21 @@
-# Gera e envia os embeddings para o vector db
 from typing import List
 from config import VOYAGE_AI_SECRET_KEY
 import voyageai
 
-# embedder = OllamaEmbeddings(model="nomic-embed-text", base_url=OLLAMA_BASE_URL)
 vo = voyageai.Client(api_key=VOYAGE_AI_SECRET_KEY)
+# embedder = OllamaEmbeddings(model="nomic-embed-text",
 
 
-def generate_embeddings(chunks: List[str]) -> None:
+def generate_embeddings(chunks: List[str]) -> List[List[float]]:
     # return embedder.embed_documents(chunks)
-    return vo.embed(chunks, model="voyage-3.5")
+    response = vo.embed(
+        texts=chunks,
+        model="voyage-3.5",
+        input_type="document",  # importante para distinguir entre doc e query
+    )
+    return response.embeddings
 
 
-def generate_embeddings_query(query: str) -> None:
-    return vo.embed.embed_query(query)
+def generate_embedding_query(query: str) -> List[float]:
+    response = vo.embed(texts=[query], model="voyage-3.5", input_type="query")
+    return response.embeddings[0]

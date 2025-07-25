@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from qdrant_client import models
 import uuid
 from rag.splitter import split_text
-from rag.embedder import generate_embeddings, generate_embeddings_query
+from rag.embedder import generate_embeddings, generate_embedding_query
 from config import (
     supported_types,
     max_file_size,
@@ -38,6 +38,8 @@ async def upload_file(file: UploadFile = File(...)):
 
     vectors = generate_embeddings(chunks)
 
+    print("vectors", vectors)
+
     try:
         qdrant_client.get_collection(COLLECTION_NAME)
     except Exception:
@@ -61,7 +63,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.post("/ask")
 async def ask(question: str):
-    question_embedding = generate_embeddings_query(question)
+    question_embedding = generate_embedding_query(question)
 
     search_result = qdrant_client.search(
         collection_name=COLLECTION_NAME,
