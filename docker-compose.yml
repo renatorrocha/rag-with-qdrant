@@ -5,9 +5,10 @@ services:
     container_name: "rag-with-qdrant"
     environment:
       PORT: ${PORT}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+      # OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
       GROQ_API_KEY: ${GROQ_API_KEY}
       COLLECTION_NAME: ${COLLECTION_NAME}
       QDRANT_URL: ${QDRANT_URL}
+      VOYAGE_AI_SECRET_KEY: ${VOYAGE_AI_SECRET_KEY}
     ports:
       - "${PORT}:${PORT}"

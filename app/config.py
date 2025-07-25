@@ -4,6 +4,8 @@ from qdrant_client import QdrantClient
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 
+VOYAGE_AI_SECRET_KEY = os.getenv("VOYAGE_AI_SECRET_KEY")
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "documents")
