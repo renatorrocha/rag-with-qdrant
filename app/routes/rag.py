@@ -46,7 +46,7 @@ async def upload_file(file: UploadFile = File(...)):
         qdrant_client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=len(vectors[0]),
+                size=100,
                 distance=models.Distance.COSINE,
             ),
         )
