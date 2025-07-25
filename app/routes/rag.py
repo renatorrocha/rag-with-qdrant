@@ -1,15 +1,16 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from qdrant_client import models
 import uuid
+from rag.splitter import split_text
+from rag.embedder import generate_embeddings, generate_embeddings_query
 from config import (
     supported_types,
     max_file_size,
-    text_splitter,
-    embedder,
     qdrant_client,
     COLLECTION_NAME,
 )
 from call_groq import call_groq
+from rag.loader import load_documents
 
 router = APIRouter()
 
@@ -21,24 +22,19 @@ async def upload_file(file: UploadFile = File(...)):
             status_code=400, detail=f"File type not supported: {file.content_type}"
         )
 
-    content = await file.read()
+    text = await load_documents(file)
 
-    if not content:
+    if not text:
         raise HTTPException(status_code=400, detail="File is empty")
 
-    if len(content) > max_file_size:
+    if len(text) > max_file_size:
         raise HTTPException(
             status_code=400, detail="File size exceeds the maximum allowed size (10MB)"
         )
 
-    try:
-        text = content.decode("utf-8")
-    except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File is not a valid text file")
+    chunks = split_text(text)
 
-    chunks = text_splitter.split_text(text)
-
-    vectors = embedder.embed_documents(chunks)
+    vectors = generate_embeddings(chunks)
 
     try:
         qdrant_client.get_collection(COLLECTION_NAME)
@@ -63,7 +59,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.post("/ask")
 async def ask(question: str):
-    question_embedding = embedder.embed_query(question)
+    question_embedding = generate_embeddings_query(question)
 
     search_result = qdrant_client.search(
         collection_name=COLLECTION_NAME,
