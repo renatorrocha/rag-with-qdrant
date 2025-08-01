@@ -1,5 +1,5 @@
 import requests
-from config import GROQ_API_KEY
+from app.config import GROQ_API_KEY
 
 
 def call_groq(context: str, question: str) -> str:

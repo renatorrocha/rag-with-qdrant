@@ -1,16 +1,16 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from qdrant_client import models
 import uuid
-from rag.splitter import split_text
-from rag.embedder import generate_embeddings, generate_embedding_query
-from config import (
+from app.rag.splitter import split_text
+from app.rag.embedder import generate_embeddings, generate_embedding_query
+from app.config import (
     supported_types,
     max_file_size,
     qdrant_client,
     COLLECTION_NAME,
 )
-from call_groq import call_groq
-from rag.loader import load_documents
+from app.call_groq import call_groq
+from app.rag.loader import load_documents
 
 router = APIRouter()
 
